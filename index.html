@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kampala International University - Digital Campus Guide</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header>
+<div class="wrap">
+<h1>🎓 Kampala International University</h1>
+<p>Digital Campus Guide</p>
+</div>
+</header>
+
+<nav class="nav wrap">
+{% if user %}
+<span>Welcome, <strong>{{ user.full_name }}</strong></span>
+<a href="{{ url_for('logout') }}">Log out</a>
+{% else %}
+<a href="{{ url_for('login') }}">Login</a>
+<a href="{{ url_for('register') }}">Create Account</a>
+{% endif %}
+</nav>
+
+<main class="wrap">
+{% with messages = get_flashed_messages() %}
+{% for message in messages %}<div class="notice">{{ message }}</div>{% endfor %}
+{% endwith %}
+
+<section class="search">
+<h2>Find a Room</h2>
+<input id="search" placeholder="Search Room DO2 or DO3">
+<button onclick="searchRooms()">Search</button>
+</section>
+
+<h2>Campus Map</h2>
+<div id="map"></div>
+<div class="actions">
+<button onclick="locateUser()">📍 Find My Location</button>
+<button onclick="showAll()">🗺️ Show All Rooms</button>
+<a class="btn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=Kampala%20International%20University%2C%20Kampala%2C%20Uganda">🌐 Open KIU on Google Maps</a>
+</div>
+
+<h2>Rooms</h2>
+<div id="rooms" class="cards"></div>
+</main>
+
+<footer>
+Digital Campus Guide • Kampala International University<br>
+<a href="mailto:dragoneinstein@gmail.com">dragoneinstein@gmail.com</a>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const rooms=[
+{name:"Room DO2",lat:0.296344,lng:32.603699},
+{name:"Room DO3",lat:0.296294,lng:32.604129}
+];
+const map=L.map("map").setView([0.296319,32.603914],19);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+{maxZoom:22,attribution:"&copy; OpenStreetMap contributors"}).addTo(map);
+const markers={};
+rooms.forEach(r=>{
+ const m=L.marker([r.lat,r.lng]).addTo(map).bindPopup(
+ `<strong>${r.name}</strong><br><br><a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination=${r.lat},${r.lng}">🧭 Get Directions</a>`);
+ markers[r.name]=m;
+});
+function render(list=rooms){
+ document.getElementById("rooms").innerHTML=list.map(r=>`
+ <article class="card"><h3>${r.name}</h3>
+ <button onclick="showRoom('${r.name}')">📍 Show on Map</button>
+ <a class="btn" target="_blank" href="https://www.google.com/maps/dir/?api=1&destination=${r.lat},${r.lng}">🧭 Directions</a>
+ </article>`).join("") || "<p>No room found.</p>";
+}
+function searchRooms(){
+ const q=document.getElementById("search").value.toLowerCase();
+ render(rooms.filter(r=>r.name.toLowerCase().includes(q)));
+}
+function showRoom(name){const r=rooms.find(x=>x.name===name);map.setView([r.lat,r.lng],21);markers[name].openPopup();}
+function showAll(){map.fitBounds(L.featureGroup(Object.values(markers)).getBounds().pad(.5));}
+function locateUser(){
+ if(!navigator.geolocation)return alert("Location is not supported.");
+ navigator.geolocation.getCurrentPosition(p=>{
+  const lat=p.coords.latitude,lng=p.coords.longitude;
+  map.setView([lat,lng],20);
+  L.marker([lat,lng]).addTo(map).bindPopup("You are here").openPopup();
+ },()=>alert("Please allow location access."));
+}
+render();
+</script>
+</body>
+</html>
